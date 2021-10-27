@@ -1,0 +1,82 @@
+model {
+
+#below, wts[i] increases the estimated mu by the proportion of the species represented in colony[i]
+# e.g., a small value of wts[i]
+  for (i in 1:ncounts) { 
+	count[i] ~ dpois(mu[i]) # response 
+	mu[i] <-  exp(eta1[i]) #expected response
+	eta1[i] ~ dnorm(eta[i],taunoise) #overdispersion
+	eta[i] <- plt[colony[i],plot[i]] + x.gampred[year[i],colony[i]] #process model - plot intercept and year-smoother
+
+} ## expected response
+taunoise <- 1/pow(sdnoise,2)
+sdnoise ~ dunif(0,30)
+#taunoise ~ dgamma(1.0E-6,1.0E-6)
+#sdnoise <- 1/pow(taunoise,0.5)
+
+for(k in 1:ncolony){
+for(cc in 1:nplot[k]){
+
+plt[k,cc] ~ dnorm(C[k],tau.plt) #random effect for plot means
+
+}
+C[k] ~ dnorm(0,0.001)#fixed-effects for colony means
+}
+
+tau.plt <- 1/pow(sd.plt,2)
+sd.plt ~ dunif(0,30)
+
+###########COMPUTING GAMs##############
+# Following Crainiceanu, C. M., Ruppert, D. & Wand, M. P. (2005). Bayesian Analysis for Penalized Spline Regression Using WinBUGS. Journal of Statistical Softare, 14 (14), 1-24.
+# X.basis is data computed in R
+
+#tauX~dgamma(1.0E-6,1.0E-6) #alternate prior, original from Cainiceanu et al.
+tauX <- 1/pow(sdX,2) # prior on precision of gam coefficients
+sdX ~ dunif(0,5)
+taubeta <- 1/pow(sdbeta,2) # prior on precision of gam coefficients
+sdbeta ~ dunif(0,5)
+
+   for(j in 1:nknots){ # Computation of GAM components
+         B.X[j] ~ dnorm(0,tauX)        
+
+	for(k in 1:ncolony){
+		beta.X[k,j] ~ dnorm(B.X[j],taubeta)
+		
+
+         for ( i in 1:nyearspred ){
+             X.part[i,j,k] <- beta.X[k,j]*(X.basis[i,j])
+           
+         }#i
+
+}#k
+    }#j
+
+    for (i in 1:nyearspred){
+	for(k in 1:ncolony){
+        x.gampred[i,k] <- sum(X.part[i,1:nknots,k])
+    }#k
+    }#i
+
+
+### derived parameters
+
+ for (i in 1:nyearspred){
+
+for(k in 1:ncolony){
+
+
+etapredlog[i,k] <- C[k] + x.gampred[i,k]
+
+etapred[k,i] <- exp(etapredlog[i,k])
+etapredc[k,i] <- exp(x.gampred[i,k])*wtlst[k]
+
+} #k
+
+pop[i] <- sum(etapred[1:ncolony,i])
+popsum[i] <- sum(etapredc[1:ncolony,i])
+
+} #i
+
+
+
+}

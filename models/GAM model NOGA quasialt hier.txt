@@ -1,0 +1,108 @@
+model {
+##### attempted to apply to seabird colony counts but there's insufficient data to support this model
+#dat = list(X.basis = X.basis,
+#           X.pred = X.pred,
+#           colony = colony,
+#           ncounts = ncounts,
+#           ncolony = ncolony,
+#           count = count,
+#           nknots = nknots,
+#           nyears = length(ymin:ymax))
+
+
+
+
+
+
+  for (i in 1:ncounts) { 
+	count[i] ~ dpois(mu[i]) # response
+	mu[i] <-  exp(eta1[i]) #expected response
+	eta1[i] ~ dnorm(eta[i],taunoise) #overdispersion
+	eta[i] <- clny[colony[i]] + x.gam[i] #process model - colony intercept and year-smoother
+
+} ## expected response
+taunoise <- 1/pow(sdnoise,2)
+sdnoise ~ dunif(0,30)
+
+
+for(k in 1:ncolony){
+
+clny[k] ~ dnorm(0,0.01) #fixed-effects for colony means
+
+}
+
+
+###########COMPUTING GAMs##############
+# Following Crainiceanu, C. M., Ruppert, D. & Wand, M. P. (2005). Bayesian Analysis for Penalized Spline Regression Using WinBUGS. Journal of Statistical Softare, 14 (14), 1-24.
+# X.basis is data computed in R
+
+#tauX~dgamma(1.0E-6,1.0E-6) #alternate prior, original from Cainiceanu et al.
+tauX <- 1/pow(sdX,2) # prior on precision of gam hyperparameters
+sdX ~ dunif(0,5)
+taubeta <- 1/pow(sdbeta,2) # prior on precision of gam coefficients
+sdbeta ~ dunif(0,5)
+
+   for(j in 1:nknots){ # Computation of GAM components
+         B.X[j] ~ dnorm(0,tauX)
+
+################################################
+#alternate strategy for the beta.X - avoiding extreme values
+#          beta.X.tmp[j] ~ dnorm(0,tauX)    #I(-10,10)
+#         
+#         beta.X[j] <- max(min(beta.X.tmp[j],10),-10)
+################################################
+                 
+	for(k in 1:ncolony){
+		beta.X[j,k] ~ dnorm(B.X[j],taubeta)
+		}
+
+         for (i in 1:ncounts)
+         {
+             X.part[i,j] <- beta.X[j,colony[i]]*(X.basis[i,j])
+           
+         }
+    }
+
+    for (i in 1:ncounts)
+    {
+        x.gam[i] <- sum(X.part[i,1:nknots])
+    
+    }
+
+
+### derived parameters
+ for (i in 1:nyears)
+         {
+for(j in 1:nknots){
+	for(k in 1:ncolony){
+		X.partpredc[i,j,k] <- beta.X[j,k]*X.pred[i,j]
+		}
+              
+             X.partpred[i,j] <- B.X[j]*(X.pred[i,j])
+         } #j
+B.gampred[i] <- sum(X.partpred[i,1:nknots])
+
+
+for(k in 1:ncolony){
+col.gampred[i,k] <- sum(X.partpredc[i,1:nknots,k])
+
+colpredlog[k,i] <- clny[k] + col.gampred[i,k]
+colpred[k,i] <- exp(colpredlog[k,i])
+
+
+colpredloghyp[k,i] <- clny[k] + B.gampred[i]
+colpredhyp[k,i] <- exp(colpredloghyp[k,i])
+
+} #k
+poppredloghyp[i] <- sum(clny[1:ncolony]) + B.gampred[i]
+poppredhyp[i] <- exp(poppredloghyp[i])
+
+
+pop[i] <- sum(colpred[1:ncolony,i])
+pophyp[i] <- sum(colpredhyp[1:ncolony,i])
+
+} #i
+
+
+
+}

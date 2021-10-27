@@ -1,0 +1,144 @@
+model {
+
+#below, wts[i] increases the estimated mu by the proportion of the species represented in colony[i]
+# e.g., a small value of wts[i]
+  for (i in 1:ncounts) { 
+	count[i] ~ dpois(mu[i]*wts[i]) # response 
+	mu[i] <-  exp(eta1[i]) #expected response
+	eta1[i] ~ dnorm(eta[i],taunoise) #overdispersion
+	eta[i] <- plt[colony[i],plot[i]] + yeareffect[year[i],colony[i]] #process model - plot intercept and year-smoother
+
+} ## expected response
+taunoise <- 1/pow(sdnoise,2)
+sdnoise ~ dunif(0,30)
+#taunoise ~ dgamma(1.0E-6,1.0E-6)
+#sdnoise <- 1/pow(taunoise,0.5)
+
+for(k in 1:ncolony){
+for(cc in 1:nplot[k]){
+
+plt[k,cc] ~ dnorm(0,tau.plt) #random effect for plot means
+
+}
+#C[k] ~ dnorm(0,0.01)#fixed-effects for colony means
+}
+
+tau.plt <- 1/pow(sd.plt,2)
+sd.plt ~ dunif(0,30)
+
+##below assumes that counts and occu values are paired
+for (o in 1:noccu){
+
+occu[o] ~ dbinom(psi[year[o],colony[o]], denom[o])
+
+
+
+}#o
+for(k in 1:ncolony){
+	for(y in 1:nyear){
+psi[y,k] <- ilogit(occ.year[y,k])
+
+}#y
+}#k
+
+###########COMPUTING GAMs##############
+
+#### replicate this section to calculate a similarly structured GAM for the occupancy info
+#### replicate this section to calculate a similarly structured GAM for the occupancy info
+#### replicate this section to calculate a similarly structured GAM for the occupancy info
+#### replicate this section to calculate a similarly structured GAM for the occupancy info
+#### replicate this section to calculate a similarly structured GAM for the occupancy info
+### replacing yeareffect[i,k] with occ.year[y,k]
+
+
+taubeta <- 1/pow(sdbeta,2) # prior on precision of gam coefficients
+sdbeta ~ dunif(0,5)
+
+taubetao <- 1/pow(sdbetao,2) # prior on precision of gam coefficients
+sdbetao ~ dunif(0,5)
+
+
+nk1 <- nknots-1
+nk2 <- ((nknots*2)-2)
+
+B.X[1] ~ dnorm(0,0.01)
+B.Xo[1] ~ dnorm(0,0.01)
+
+#B.X[1] <- 0
+  ## prior for s(year)... 
+
+  K1 <- S1[1:nk1,1:nk1] * lambda[1]  + S1[1:nk1,(nknots:nk2)] * lambda[2]
+  B.X[(2:nknots)] ~ dmnorm(zero[(2:nknots)],K1) 
+
+  K1o <- S1[1:nk1,1:nk1] * lambdao[1]  + S1[1:nk1,(nknots:nk2)] * lambdao[2]
+  B.Xo[(2:nknots)] ~ dmnorm(zero[(2:nknots)],K1o) 
+ 
+#K1 is the prior on the precisions of the mnorm B.X values (mean GAM parameters for a species)
+## smoothing paramter
+for(i in 1:2) {
+lambda[i] ~ dgamma(0.05,0.005)
+rho[i] <- log(lambda[i])
+
+lambdao[i] ~ dgamma(0.05,0.005)
+rhoo[i] <- log(lambdao[i])
+}#i
+
+   for(j in 1:nknots){ # Computation of GAM components
+	for(k in 1:ncolony){
+		beta.X[k,j] ~ dnorm(B.X[j],taubeta)
+		beta.Xo[k,j] ~ dnorm(B.Xo[j],taubetao)
+		
+		
+
+         for ( i in 1:nyearspred )
+         {
+             X.part[i,j,k] <- beta.X[k,j]*(X[i,j])
+             X.parto[i,j,k] <- beta.Xo[k,j]*(X[i,j])
+           
+         }#i
+
+}#k
+    }#j
+
+    for (i in 1:nyearspred)
+    {
+	for(k in 1:ncolony){
+        yeareffect[i,k] <- sum(X.part[i,1:nknots,k])
+        occ.year[i,k] <- sum(X.parto[i,1:nknots,k])
+
+    }#k
+    }#i
+
+
+### derived parameters
+##### modify these to multiply the burrows year effect by the occupancy year effect, then re-scale to colony size
+
+
+ for (i in 1:nyearspred)
+         {
+for(j in 1:nknots){
+              
+             X.partpred[i,j] <- B.X[j]*(X[i,j])
+        } #j
+x.gampred[i] <- sum(X.partpred[i,1:nknots])
+
+
+
+for(k in 1:ncolony){
+for(p in 1:nplot[k]){
+etapredlog[i,k,p] <- exp(plt[k,p] + yeareffect[i,k])
+}
+
+etapred[k,i] <- mean(etapredlog[i,k,1:nplot[k]])*wtlst2[k]
+etapredr[k,i] <- (exp(yeareffect[i,k])/exp(yeareffect[baseyear[k],k]))*wtlst[k]
+
+} #k
+
+pop[i] <- mean(etapred[1:ncolony,i])
+popr[i] <- sum(etapredr[1:ncolony,i])
+
+} #i
+
+
+
+}

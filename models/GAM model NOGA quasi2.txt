@@ -1,0 +1,30 @@
+model {
+  eta <- X %*% b ## linear predictor
+  for (i in 1:n) { y[i] ~ dpois(mu[i]) } ## response 
+  for (i in 1:n) { mu[i] <-  exp(eta1[i]) 
+	eta1[i] ~ dnorm(eta[i],taunoise)
+		} ## expected response
+taunoise <- 1/pow(sdnoise,2)
+sdnoise ~ dunif(0,30)
+
+   ## Parametric effect priors CHECK tau=1/77^2 is appropriate!
+  for (i in 1:5) { b[i] ~ dnorm(0,0.00017) }
+  ## prior for s(year)... 
+  K1 <- S1[1:5,1:5] * lambda[1]  + S1[1:5,6:10] * lambda[2]
+  b[6:10] ~ dmnorm(zero[6:10],K1) 
+  ## smoothing parameter priors CHECK...
+  for (i in 1:2) {
+    lambda[i] ~ dgamma(.05,.005)
+    rho[i] <- log(lambda[i])
+  }
+
+#derived parameters
+
+etapredlog <- Xp %*% b ### predictions
+
+for(i in 1:npred){
+etapred[i] <- exp(etapredlog[i])
+}
+
+
+}
