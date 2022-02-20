@@ -1,7 +1,6 @@
 ### Updating Atlantic Seabird Counts
 # 
 # #setwd("M:/My Documents/State of Birds/SOCB/seabird data 2017")
- setwd("c:/SOCB/seabird data 2017")
  library(dplyr)
  library(tibble)
  library(tidyr)
@@ -464,9 +463,11 @@ ncountsbysp <- rev(sort(table(allpost60$species)))
 sptomod <- names(ncountsbysp)[which(ncountsbysp > 9)]
 #spmissed <- names(ncountsbysp)[which(ncountsbysp <= 19)]
 
-source("c:/Functions/transparency function.r")
 
-gamparam <- read.csv("cvresults.csv",
+## this transparency function was a home-brew approach to setting alpha in ggplot2
+#source("c:/Functions/transparency function.r")
+
+gamparam <- read.csv("data/cvresults.csv",
                      stringsAsFactors = F)
 j = 0
 run.order <- c(2:length(sptomod),1)

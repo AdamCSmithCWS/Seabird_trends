@@ -1,70 +1,71 @@
 ### Updating PAcific Seabird Counts
 # 
 # #setwd("M:/My Documents/State of Birds/SOCB/seabird data 2017")
- setwd("c:/SOCB/seabird data 2017")
  library(dplyr)
  library(tibble)
  library(tidyr)
  library(mgcv)
-
- colraw = read.csv("Copy of All West Coast Monitoring Plot Summary_20180122_WilsonL.csv",
-                   stringsAsFactors = F)
- ### figure out how to use data from all species plots for each species
- ### while still calculating a colony-level trend/trajectory
-plotcls = paste0("p",1:15)
-
- coldf = expand.grid(colony = unique(colraw$Colony),
-                     species = unique(colraw$Species),
-                     year = unique(colraw$Year),
-                     plot = plotcls,
-                     plotgroup = unique(colraw$spplots))
+# ### old data prep steps that are probably no longer relevant
+ # ### all this commented out section is stored in teh complete count database file writte below
+#  colraw = read.csv("Data/Copy of All West Coast Monitoring Plot Summary_20180122_WilsonL.csv",
+#                    stringsAsFactors = F)
+#  ### figure out how to use data from all species plots for each species
+#  ### while still calculating a colony-level trend/trajectory
+# plotcls = paste0("p",1:15)
+# 
+#  coldf = expand.grid(colony = unique(colraw$Colony),
+#                      species = unique(colraw$Species),
+#                      year = unique(colraw$Year),
+#                      plot = plotcls,
+#                      plotgroup = unique(colraw$spplots))
+#  
+#  for(ss in unique(coldf$species)){
+#    tmp1 = colraw[which(colraw$Species == ss),]
+#     for(cc in unique(tmp1$Colony)){
+#      tmp2 = tmp1[which(tmp1$Colony == cc),]
+#       for(yy in unique(tmp2$Year)){
+#         print(paste(ss,yy,cc))
+#         tmp3 = tmp2[which(tmp2$Year == yy),]
+#           for(pp in unique(coldf$plot)){
+#             if(nrow(tmp3) > 1){
+#             for(i in 1:nrow(tmp3)){
+#               tmp4 = tmp3[i,]
+#               spp = as.character(tmp4["spplots"])
+#             coldf[which(coldf$colony == cc &
+#                           coldf$species == ss &
+#                           coldf$year == yy &
+#                           coldf$plot == pp &
+#                           coldf$plotgroup == spp),"count"] <- as.integer(tmp4[pp])
+#             }#i
+#             }else{
+#               spp = as.character(tmp3["spplots"])
+#               coldf[which(coldf$colony == cc &
+#                             coldf$species == ss &
+#                             coldf$year == yy &
+#                             coldf$plot == pp &
+#                             coldf$plotgroup == spp),"count"] <- as.integer(tmp3[pp])
+#               
+#             }
+#             }#pp
+#       }#yy
+#     }#cc
+#  }#ss
+#  
+# coldf = coldf[which(!is.na(coldf$count)),] 
+# 
+# 
+# coldfout = coldf[order(coldf$species,
+#                        coldf$colony,
+#                        coldf$plotgroup,
+#                        coldf$plot,
+#                        coldf$year),] 
+# 
+# nrow(coldfout) == nrow(unique(coldfout[,c(1:5)]))
+# 
+# write.csv(coldfout,"complete count database western canada.csv")
  
- for(ss in unique(coldf$species)){
-   tmp1 = colraw[which(colraw$Species == ss),]
-    for(cc in unique(tmp1$Colony)){
-     tmp2 = tmp1[which(tmp1$Colony == cc),]
-      for(yy in unique(tmp2$Year)){
-        print(paste(ss,yy,cc))
-        tmp3 = tmp2[which(tmp2$Year == yy),]
-          for(pp in unique(coldf$plot)){
-            if(nrow(tmp3) > 1){
-            for(i in 1:nrow(tmp3)){
-              tmp4 = tmp3[i,]
-              spp = as.character(tmp4["spplots"])
-            coldf[which(coldf$colony == cc &
-                          coldf$species == ss &
-                          coldf$year == yy &
-                          coldf$plot == pp &
-                          coldf$plotgroup == spp),"count"] <- as.integer(tmp4[pp])
-            }#i
-            }else{
-              spp = as.character(tmp3["spplots"])
-              coldf[which(coldf$colony == cc &
-                            coldf$species == ss &
-                            coldf$year == yy &
-                            coldf$plot == pp &
-                            coldf$plotgroup == spp),"count"] <- as.integer(tmp3[pp])
-              
-            }
-            }#pp
-      }#yy
-    }#cc
- }#ss
- 
-coldf = coldf[which(!is.na(coldf$count)),] 
 
-
-coldfout = coldf[order(coldf$species,
-                       coldf$colony,
-                       coldf$plotgroup,
-                       coldf$plot,
-                       coldf$year),] 
-
-nrow(coldfout) == nrow(unique(coldfout[,c(1:5)]))
-
-write.csv(coldfout,"complete count database western canada.csv")
- 
-coldf = coldfout 
+coldf <- read.csv("data/complete count database western canada.csv") 
 
 coldf[,"plot.u"] <- paste(coldf$plotgroup,coldf$plot,sep = "-")
 coldf[,"col.plot.u"] <- paste(coldf$colony,coldf$plotgroup,coldf$plot,sep = "-")
@@ -97,24 +98,24 @@ poplist = list()
 length(poplist) = 4
 names(poplist) = species 
 
-pop.anmu = read.csv("StatusOfBirdsUpdate_ANMU_20180328_WilsonL.csv",
+pop.anmu = read.csv("data/StatusOfBirdsUpdate_ANMU_20180328_WilsonL.csv",
                     stringsAsFactors = F)
 pop.anmu = pop.anmu[which(pop.anmu$Most.current.survey == "yes"),]
 poplist[["ANMU"]] = pop.anmu
 
-pop.caau = read.csv("StatusOfBirdsUpdate_CAAU_20180327_WilsonL.csv",
+pop.caau = read.csv("data/StatusOfBirdsUpdate_CAAU_20180327_WilsonL.csv",
                     stringsAsFactors = F)
 pop.caau = pop.caau[which(pop.caau$Most.current.survey == "yes"),]
 poplist[["CAAU"]] = pop.caau
 
 
-pop.rhau = read.csv("StatusOfBirdsUpdate_RHAU_20180327_WilsonL.csv",
+pop.rhau = read.csv("data/StatusOfBirdsUpdate_RHAU_20180327_WilsonL.csv",
                     stringsAsFactors = F)
 pop.rhau = pop.rhau[which(pop.rhau$Most.current.survey == "yes"),]
 poplist[["RHAU"]] = pop.rhau
 
 
-pop.tupu = read.csv("StatusOfBirdsUpdate_TUPU_20180328_WilsonL.csv",
+pop.tupu = read.csv("data/StatusOfBirdsUpdate_TUPU_20180328_WilsonL.csv",
                     stringsAsFactors = F)
 pop.tupu = pop.tupu[which(pop.tupu$Most.current.survey == "yes"),]
 pop.tupu[which(is.na(pop.tupu$NestPairs)),"NestPairs"] = pop.tupu[which(is.na(pop.tupu$NestPairs)),"Individual"]/2
@@ -126,7 +127,7 @@ colext = c("SpeciesID","Region","SubRegion","Year","SiteName","NestPairs")
 library(rjags)
 library(mgcv)
 
-coldf <- read.csv("data/complete count database western canada.csv")
+# coldf <- read.csv("data/complete count database western canada.csv")
 
 for(sp in species){
   if(sp == species[1]){
